@@ -13,5 +13,7 @@ public class App
         SolveurPlanning test = new SolveurPlanning();
         test.ajoutContrainte();
         
+        System.out.println( "Hello World!" );
+        
     }
 }

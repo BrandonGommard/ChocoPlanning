@@ -14,6 +14,7 @@ public class App
         test.ajoutContrainte();
         
         System.out.println( "Hello World!" );
+        System.out.println( "Hello World!" );
         
     }
 }

@@ -110,8 +110,6 @@ public void initialisation(){
     
     /**
      * auPlus1GardeJour ajoute la contrainte sur chaque jour qu'une personne ne peut être que dans un seul service
-     * @param m Modele
-     * @param x tableau des gardes
      */
     private void auPlus1GardeJour() { 
         
@@ -132,21 +130,44 @@ public void initialisation(){
             }
         }
     }
-	
-	/*public void ajoutContrainte() {
-		test = VF.enumerated("test", 0 , 100 , solveur);
-		test2 = VF.enumerated("test2", 50 , 100 , solveur);
-		test3 = VF.enumerated("test3", 40 , 70 , solveur);
-		
-		solveur.post(
-		ICF.arithm(test, ">", test2),
-		ICF.arithm(test3, "-", test2, "=", 5 )
-		);
-	}*/
+    
+    /**
+     * tjrs1PersonneDeGarde ajoute la contrainte sur chaque service qui doit avoir une personne de garde chaque jour
+     * @param m Modele
+     * @param x tableau des gardes
+     */
+    /*private void tjrs1PersonneDeGarde(){
+        
+        //On change l'ordre des dimensions du tableau 3D afin de lui appliquer les contraintes plus simplement
+        IntegerVariable[][][] nouveauX = new IntegerVariable[nbServices][nbJours][nbInternes];
+        
+        for(int iService=0; iService < nbServices ; iService++){
+            for(int iIntern=0 ; iIntern < nbInternes ; iIntern++){
+                for(int t=0 ; t<nbJours ; t++){
+                    nouveauX[iService][t][iIntern] = x[iService][iIntern][t];
+                }
+            }
+        }
+               
+        for(int iService=0 ; iService<nbServices ; iService++){
+            for(int t=0 ; t<nbJours ; t++){
+                m.addConstraint(eq( sum(nouveauX[iService][t]) , 1));
+            }
+        }     
+    }*/
+    
+    
+    
+    
+    
+    
+    
+    
 	
 	
 	public void solve(){
 		
+		//On met toutes les gardes dans un seul tableau afin de pouvoir appliquer une stratégie de recherche sur tous les jours
 		IntVar[] toutesLesGardes = new IntVar[nbServices*nbInternes*nbJours];
 		int cpt = 0;
 		

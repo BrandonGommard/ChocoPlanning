@@ -1,20 +1,24 @@
 package fr.brandon.planning;
 
+
+
 /**
- * Hello world!
+ * 
  *
  */
 public class App 
 {
     public static void main( String[] args )
     {
-        System.out.println( "Hello World!" );
+    	String[] nomServices = {"MAT","SAMU","BLOC"};
+        String[] nomAstreintes = {"AST"};
         
-        SolveurPlanning test = new SolveurPlanning();
-        test.ajoutContrainte();
+        SolveurPlanning test = new SolveurPlanning(3,1,5,15,2, nomServices,nomAstreintes);
         
-        System.out.println( "Hello World!" );
-        System.out.println( "Hello World!" );
+        test.initialisation();
+        test.ajoutDesContraintes();
+        test.solve();     
         
+        test.displayResult();
     }
 }

@@ -19,6 +19,11 @@ public class App
         test.ajoutDesContraintes();
         test.solve();     
         
+<<<<<<< .merge_file_a04144
         test.displayResult();
+=======
+        System.out.println( "Hello World!" );
+        
+>>>>>>> .merge_file_a04612
     }
 }

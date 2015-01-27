@@ -512,7 +512,7 @@ public class SolveurPlanning {
       * enchainementDesagreable permettra d'éviter les enchainements de plusieurs gardes à la suite
       */
      private void enchainementDesagreable(){
-    	 
+    	 /*
     	 IntVar[][][] nouveauX = new IntVar[nbInternes][nbJours][nbServices];
          
          for(int iService=0; iService < nbServices ; iService++){
@@ -534,7 +534,7 @@ public class SolveurPlanning {
     						 	 );
     			 }
     		 }
-    	 }
+    	 }*/
     	 
     	 
      }
@@ -543,6 +543,51 @@ public class SolveurPlanning {
       * equilibreJSD va s'assurer que le nombre de jeudi samedi et dimanche sont équilibrés
       */
      private void equilibreJSD(){
+    	 
+    	 int nbJourTheorique = (nbJours*nbServices / Semaine.NB_JOURS_SEMAINE.toInt())/ nbInternes ;
+         System.out.println("nombre de gardes le jeudi/samedi/dimanche théorique: " + nbJourTheorique);
+         
+         // On va regrouper chaque jour dans un tableau qui lui est propre afin d'y appliquer les contraintes plus simplement
+         IntVar[][] jeudis    = new IntVar[nbInternes][nbJours/Semaine.NB_JOURS_SEMAINE.toInt()+1];
+         IntVar[][] samedis   = new IntVar[nbInternes][nbJours/Semaine.NB_JOURS_SEMAINE.toInt()+1];
+         IntVar[][] dimanches = new IntVar[nbInternes][nbJours/Semaine.NB_JOURS_SEMAINE.toInt()+1];
+         int cptJeudi = 0;
+         int cptSamedi = 0;
+         int cptDimanche = 0;
+         for(int iInterne=0 ; iInterne < nbInternes ; iInterne++){
+        	 for(int iService=0 ; iService < nbServices ; iService++){
+        		 for(int t=0 ; t < nbJours ; t++){
+        			 switch (t){
+        			 case 3:
+        				 jeudis[iInterne][cptJeudi] = x[iService][iInterne][t];
+        			 	 cptJeudi++;
+        			 	 break;
+        			 case 5:
+        				 samedis[iInterne][cptSamedi] = x[iService][iInterne][t];
+        			 	 cptSamedi++;
+        			 	 break;
+        			 case 6:
+        				 dimanches[iInterne][cptDimanche] = x[iService][iInterne][t];
+        			 	 cptDimanche++;
+        			 	 break;
+        			 default:
+        				 
+        			 }
+        		 }
+        	 }
+        	 cptJeudi = cptSamedi = cptDimanche = 0;
+         }
+         
+         // le nombre de garde effectué le jeudi/samedi/dimanche par chaque interne est comptabilisé, ce nombre ne doit pas trop s'écarter de la moyenne théorique
+         for(int iInterne = 0; iInterne < nbInternes ; iInterne++){
+        	 solveur.post(ICF.sum(jeudis[iInterne], "<=", VF.fixed(nbJourTheorique+nbGardeEcart, solveur)));
+        	 solveur.post(ICF.sum(jeudis[iInterne], ">=", VF.fixed(nbJourTheorique-nbGardeEcart, solveur)));
+        	 solveur.post(ICF.sum(samedis[iInterne], "<=", VF.fixed(nbJourTheorique+nbGardeEcart, solveur)));
+        	 solveur.post(ICF.sum(samedis[iInterne], ">=", VF.fixed(nbJourTheorique-nbGardeEcart, solveur)));
+        	 solveur.post(ICF.sum(dimanches[iInterne], "<=", VF.fixed(nbJourTheorique+nbGardeEcart, solveur)));
+        	 solveur.post(ICF.sum(dimanches[iInterne], ">=", VF.fixed(nbJourTheorique-nbGardeEcart, solveur)));
+        	 
+         }
     	 
      }
      

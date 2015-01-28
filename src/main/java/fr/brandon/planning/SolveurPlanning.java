@@ -3,6 +3,7 @@ package fr.brandon.planning;
 
 import java.util.Random;
 
+import solver.ResolutionPolicy;
 import solver.Solver;
 import solver.constraints.ICF;
 import solver.constraints.LCF;
@@ -130,7 +131,7 @@ public class SolveurPlanning {
         equilibreJSD();
         
         equilibreAstreinte();
-        indisponibiliteSouple();
+        
     }
     
     /**
@@ -512,8 +513,10 @@ public class SolveurPlanning {
       * enchainementDesagreable permettra d'éviter les enchainements de plusieurs gardes à la suite
       */
      private void enchainementDesagreable(){
-    	 /*
-    	 IntVar[][][] nouveauX = new IntVar[nbInternes][nbJours][nbServices];
+    	 
+    	 //beaucoup beaucoup beaucoup trop long à voir avec la méthode de recherche pour améliorer la vitesse
+    	 // car parfois il trouve une solution en moins d'une seconde == problème à cause du random
+    	/* IntVar[][][] nouveauX = new IntVar[nbInternes][nbJours][nbServices];
          
          for(int iService=0; iService < nbServices ; iService++){
              for(int iIntern=0 ; iIntern < nbInternes ; iIntern++){
@@ -630,7 +633,55 @@ public class SolveurPlanning {
      /**
       * 
       */
-     private void indisponibiliteSouple(){
+     private IntVar[] indisponibiliteSouple(){
+    	 
+    	 //On regroupe tous les jours où chaque interne a une indisponibilité souple dans un tableau
+    	 //On minimisera par la suite le nombre de jours de gardes dans ces jours
+    	 /*
+    	 IntVar[][] varIndispoSouples = new IntVar[nbInternes][nbServices*nbJours];
+    	 int cpt = 0;
+    	 for(int iInterne=0 ; iInterne<nbInternes ; iInterne++){
+    		 for(int t=0 ; t< nbJours ; t++){
+    			 for(int iService=0 ; iService<nbServices ; iService++){
+    				 if(indispoSouple[iInterne][t]){
+    					 varIndispoSouples[iInterne][cpt] = x[iService][iInterne][t];
+    				 	 cpt++;
+    				 }
+    			 } 
+    		 }
+    		 cpt=0;
+    	 }*/
+    	 
+    	 //le problème c'est qu'on veut minimiser chaque indisponibilitée, mais en même temps que cela reste équitable 
+    	 
+    	 //On compte le nombre d'indisponibilités
+    	 int nbIndisposTotal = 0;
+    	 
+    		 for(int j=0; j< nbInternes ; j++){
+    			 for(int k=0; k< nbJours ; k++){
+    	    		 if (indispoSouple[j][k])
+    	    			 nbIndisposTotal++;
+    	    	 }
+        	 }
+    	 nbIndisposTotal = nbIndisposTotal * nbServices;
+    	 
+    	 IntVar[] varIndispoSouples = new IntVar[nbIndisposTotal];
+    	 int cpt = 0;
+    	 for(int iInterne=0 ; iInterne<nbInternes ; iInterne++){
+    		 for(int t=0 ; t< nbJours ; t++){
+    			 for(int iService=0 ; iService<nbServices ; iService++){
+    				 if(indispoSouple[iInterne][t]){
+    					 varIndispoSouples[cpt] = x[iService][iInterne][t];
+    				 	 cpt++;
+    				 }
+    			 } 
+    		 }
+    	 }
+    		 
+
+    	 
+    	 return varIndispoSouples;
+    	 
     	 
      }
      
@@ -668,12 +719,27 @@ public class SolveurPlanning {
 			}
 		}
 		
-		if (solveur.findSolution()) {
+		/**if (solveur.findSolution()) {
             System.out.println("Solution trouvée en " + solveur.getMeasures().getTimeCount() + " secondes");        
         } else {
             System.out.println("Pas de solution pour ce problème, en "
                     + solveur.getMeasures().getTimeCount() + solveur.getMeasures().getSolutionCount() + " secondes");
-        }
+        }*/
+		
+		IntVar[] joursIndisponibilitesSouples = indisponibiliteSouple();
+		
+		IntVar sum = VF.bounded("objectif", 0, 999, solveur);
+		
+   	 
+   	 
+   	 	solveur.post(ICF.sum(joursIndisponibilitesSouples, sum));
+   		 
+   	 
+		
+		solveur.findOptimalSolution(ResolutionPolicy.MINIMIZE, sum);
+		System.out.println("Solution trouvée en " + solveur.getMeasures().getTimeCount() + " secondes");
+		System.out.println(sum.getValue());
+		
 	}
 	
 	

@@ -34,6 +34,28 @@ public class App
         		indispoSouple[i][t] = false;
         	}
         }
+        
+        indispoSouple[0][0] = true;
+        indispoSouple[0][1] = true;
+        indispoSouple[0][2] = true;
+        indispoSouple[0][3] = true;
+        indispoSouple[0][4] = true;
+        indispoSouple[0][5] = true;
+        indispoSouple[0][6] = true;
+        indispoSouple[0][7] = true;
+        indispoSouple[0][8] = true;
+
+
+        indispoSouple[1][7] = true;
+        indispoSouple[1][8] = true;
+        indispoSouple[1][9] = true;
+        indispoSouple[1][10] = true;
+        indispoSouple[1][11] = true;
+        indispoSouple[1][12] = true;
+        indispoSouple[1][13] = true;
+        indispoSouple[1][14] = true;
+        
+        
         boolean[][] peutTravaillerEnsemble = new boolean[nbInternes][nbInternes];
         for(int i=0; i<nbInternes ; i++){	
         	for(int j=0; j<nbInternes ; j++){	

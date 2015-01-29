@@ -87,7 +87,6 @@ public class App
         										   respectVD, indispoForte, indispoSouple, peutTravaillerEnsemble, aptitude);
         
         test.initialisation();
-        test.ajoutDesContraintes();
         test.solve();     
        
         test.displayResult();

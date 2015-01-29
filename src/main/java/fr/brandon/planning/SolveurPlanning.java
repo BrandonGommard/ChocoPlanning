@@ -10,15 +10,28 @@ import solver.constraints.LCF;
 import solver.search.strategy.ISF;
 import solver.variables.VF;
 import solver.variables.IntVar;
-import fr.brandon.planning.Semaine;
 
 public class SolveurPlanning {
-	private int nbInternes;
-    private int nbJours;
-    private int nbServices;
-    private int nbGardeEcart;
-    private int nbAstreintes;
-    private int nbAstreintesEcart;
+	
+	/**
+	 * Constantes pour définir la valeur des jours de la semaine
+	 */
+	public static final int LUNDI = 0;
+	public static final int MARDI = 1;
+	public static final int MERCREDI = 2;
+	public static final int JEUDI = 3;
+	public static final int VENDREDI = 4;
+	public static final int SAMEDI = 5;
+	public static final int DIMANCHE = 6;
+	public static final int NB_JOURS_SEMAINE = 7;
+	
+	private final int nbInternes;
+    private final int nbJours;
+    private final int nbServices;
+    private final int nbGardeEcart;
+    private final int nbAstreintes;
+    private final int nbAstreintesEcart;
+    private int nbGardesTheorique;
     
     //true si il respecte, false sinon
     private boolean[] VD;
@@ -43,10 +56,19 @@ public class SolveurPlanning {
      * @param astreintes nombres de services d'astreintes 
      * @param internes nombres d'internes participant à la planification
      * @param jours période de temps de la planification
-     * @param difGardes différence de nombre de gardes autorisé entre le plus présent et le moins présent des internes
+     * @param diffGardes différence de nombre de gardes autorisé entre le plus présent et le moins présent des internes
+     * @param diffAstreinte différence de nombre d'astreinte autorisé entre le plus présent et le moins présent des internes
+     * @param nomService tableau de nom des services
+     * @param nomAstreinte tableau de nom des astreintes
+     * @param respectVD tableau d'acceptation de la règle VD par chaque interne
+     * @param indispoForte matrice d'indisponibilité forte de chaque interne
+     * @param indispoSouple matrice d'indisponibilité souple de chaque interne
+     * @param peutTravaillerEnsemble matrice de concordance des jours de travail des internes
+     * @param aptitude tableau 3D d'aptitude d'un interne à réaliser une garde suivant le service et la date
      */
-    public SolveurPlanning(int services, int astreintes, int internes, int jours, int diffGardes, int diffAstreinte, String[] nomService, String[] nomAstreinte , 
-    					   boolean[] respectVD, boolean[][] indispoForte, boolean[][] indispoSouple, boolean[][] peutTravaillerEnsemble, boolean[][][] aptitude){
+    public SolveurPlanning(int services, int astreintes, int internes, int jours, int diffGardes, int diffAstreinte, 
+    					   String[] nomService, String[] nomAstreinte , boolean[] respectVD, boolean[][] indispoForte, 
+    					   boolean[][] indispoSouple, boolean[][] peutTravaillerEnsemble, boolean[][][] aptitude){
         this.nbServices = services;
         this.nbAstreintes = astreintes;
         this.nbInternes = internes;
@@ -61,6 +83,8 @@ public class SolveurPlanning {
         this.peutTravailEnsemble = peutTravaillerEnsemble;
         this.aptitude = aptitude;
         
+        this.nbGardesTheorique = (nbJours*nbServices) / nbInternes ;
+        
         System.out.println("Objet planning créé avec les paramètres suivants :");
         System.out.println("Nombre de Services : \t" + nbServices);
         System.out.println("Nombre d'Astreintes : \t" + nbAstreintes);
@@ -71,27 +95,143 @@ public class SolveurPlanning {
   
 	
 	/**
-     * On récupère le nom des différents services, il faudra les passer au moment de la création des variables
-     * @param noms 
-     */
-    public void setNomServices(String[] noms){
-        this.nomServices = noms;
-    }
-    
+     * @return le tableau contenant les différents noms des services 
+     */ 
     public String[] getNomServices(){
         return this.nomServices;
     }
-    
-    public void setNomAstreintes(String[] noms){
-        this.nomAstreintes = noms;
-    }
-    
+
+    /**
+     * @return le tableau contenant les différents noms des astreintes
+     */
     public String[] getNomAstreintes(){
         return this.nomAstreintes;
     }
     
+    
     /**
-     * fonction d'initialisation du solveur et des variables
+	 * @return le nombre d'internes considérés dans le modèle
+	 */
+	public int getNbInternes() {
+		return nbInternes;
+	}
+
+
+	/**
+	 * @return le nombre de jour du modèle
+	 */
+	public int getNbJours() {
+		return nbJours;
+	}
+
+
+	/**
+	 * @return le nombre de services du modèle
+	 */
+	public int getNbServices() {
+		return nbServices;
+	}
+
+
+	/**
+	 * @return le nombre de gardes d'écart tolérés par le modèle entre l'interne qui travaille
+	 * le plus, et celui qui travaille le moins.
+	 */
+	public int getNbGardeEcart() {
+		return nbGardeEcart;
+	}
+
+
+	/**
+	 * @return the nbAstreintes
+	 */
+	public int getNbAstreintes() {
+		return nbAstreintes;
+	}
+
+
+	/**
+	 * @return le nombre d'astreinte d'écart tolérés par le modèle entre l'interne qui travaille le plus, et 
+	 * celui qui travaille le moins.
+	 */
+	public int getNbAstreintesEcart() {
+		return nbAstreintesEcart;
+	}
+	
+	/**
+	 * @return le nombre de garde théorique de chaque interne sur la période considérée
+	 */
+	public int getNbGardesTheorique() {
+		return nbGardesTheorique;
+	}
+
+
+	/**
+	 * @return le tableau d'acceptation de la contrainte VD par les internes
+	 */
+	public boolean[] getVD() {
+		return VD;
+	}
+
+
+	/**
+	 * @return la matrice d'indisponibilité des internes
+	 */
+	public boolean[][] getIndispoForte() {
+		return indispoForte;
+	}
+
+
+	/**
+	 * @return la matrice d'indiponibilié souple des internes
+	 */
+	public boolean[][] getIndispoSouple() {
+		return indispoSouple;
+	}
+
+
+	/**
+	 * @return le tableau 3D des aptitudes de chaque interne en fonction du temps
+	 */
+	public boolean[][][] getAptitude() {
+		return aptitude;
+	}
+
+
+	/**
+	 * @return le matrice de possibilité de travail entre deux internes
+	 */
+	public boolean[][] getPeutTravailEnsemble() {
+		return peutTravailEnsemble;
+	}
+
+
+	/**
+	 * @return x le tableau 3D de gardes dans chaque service, interne, jour
+	 */
+	public IntVar[][][] getX() {
+		return x;
+	}
+
+
+	/**
+	 * @return y le tableau 3D d'astreintes dans chaque service d'astreinte, interne et jour
+	 */
+	public IntVar[][][] getY() {
+		return y;
+	}
+
+
+	/**
+	 * @return l'instance du solveur
+	 */
+	public Solver getSolveur() {
+		return solveur;
+	}
+
+
+	/**
+     * fonction d'initialisation du solveur, des variables, et des contraintes
      */
     public void initialisation(){
     	
@@ -109,9 +249,6 @@ public class SolveurPlanning {
             this.y[iAstreinte] = VF.boundedMatrix(nomAstreintes[iAstreinte], nbInternes, nbJours,0,1, solveur);
         }
         
-    }
-    
-    public void ajoutDesContraintes(){
         
         auPlus1GardeJour();        
         tjrs1PersonneDeGarde();        
@@ -133,6 +270,7 @@ public class SolveurPlanning {
         equilibreAstreinte();
         
     }
+    
     
     /**
      * auPlus1GardeJour ajoute la contrainte sur chaque jour qu'une personne ne peut être que dans un seul service
@@ -186,7 +324,6 @@ public class SolveurPlanning {
       * equilibreGarde s'assure que chaque personne aura a peu près le même nombre de garde que les autres
       */
      private void equilibreGarde(){       
-         int nbGardesTheorique = (nbJours*nbServices) / nbInternes ;
          System.out.println("nombre de gardes théorique: " + nbGardesTheorique);
          
          // On va regrouper toutes les gardes de chaque interne dans un tableau afin de pouvoir faire la somme plus facilement
@@ -286,13 +423,13 @@ public class SolveurPlanning {
 	        		 for(int t=0 ; t < nbJours -1 ; t++){
 	        			 //Attention bien s'assurer que le décompte des jours commence le lundi
 	        			 //Sinon ajouter un décalage
-	        			 if(t % Semaine.NB_JOURS_SEMAINE.toInt() == Semaine.VENDREDI.toInt())
+	        			 if(t % NB_JOURS_SEMAINE == VENDREDI)
 		        			 solveur.post(LCF.ifThen(
 	        					 			ICF.arithm( x[iService][iInterne][t], "=", 1),
 	        					 			ICF.sum(nouveauX[iInterne][t+2], "=", VF.fixed(1, solveur))
 	        					 					)
 	        					 		 );
-	        			 if(t%7 == 6)
+	        			 if(t % NB_JOURS_SEMAINE == DIMANCHE)
 		        			 solveur.post(LCF.ifThen(
 	        					 			ICF.arithm( x[iService][iInterne][t], "=", 1),
 	        					 			ICF.sum(nouveauX[iInterne][t-2], "=", VF.fixed(1, solveur))
@@ -392,7 +529,7 @@ public class SolveurPlanning {
     			 for(int t=0; t<nbJours-2 ; t++){
  
     				 //pas nécessaire de mettre les contraintes sur les autres jours
-    				 switch (t % Semaine.NB_JOURS_SEMAINE.toInt())
+    				 switch (t % NB_JOURS_SEMAINE)
     				 {
     				   case 0: //lundi
     					   solveur.post(ICF.arithm(y[iAstreinte][iInterne][t], "=", y[iAstreinte][iInterne][t+1]));
@@ -547,13 +684,13 @@ public class SolveurPlanning {
       */
      private void equilibreJSD(){
     	 
-    	 int nbJourTheorique = (nbJours*nbServices / Semaine.NB_JOURS_SEMAINE.toInt())/ nbInternes ;
+    	 int nbJourTheorique = (nbJours*nbServices / NB_JOURS_SEMAINE)/ nbInternes ;
          System.out.println("nombre de gardes le jeudi/samedi/dimanche théorique: " + nbJourTheorique);
          
          // On va regrouper chaque jour dans un tableau qui lui est propre afin d'y appliquer les contraintes plus simplement
-         IntVar[][] jeudis    = new IntVar[nbInternes][nbJours/Semaine.NB_JOURS_SEMAINE.toInt()+1];
-         IntVar[][] samedis   = new IntVar[nbInternes][nbJours/Semaine.NB_JOURS_SEMAINE.toInt()+1];
-         IntVar[][] dimanches = new IntVar[nbInternes][nbJours/Semaine.NB_JOURS_SEMAINE.toInt()+1];
+         IntVar[][] jeudis    = new IntVar[nbInternes][nbJours/NB_JOURS_SEMAINE+1];
+         IntVar[][] samedis   = new IntVar[nbInternes][nbJours/NB_JOURS_SEMAINE+1];
+         IntVar[][] dimanches = new IntVar[nbInternes][nbJours/NB_JOURS_SEMAINE+1];
          int cptJeudi = 0;
          int cptSamedi = 0;
          int cptDimanche = 0;
@@ -561,15 +698,15 @@ public class SolveurPlanning {
         	 for(int iService=0 ; iService < nbServices ; iService++){
         		 for(int t=0 ; t < nbJours ; t++){
         			 switch (t){
-        			 case 3:
+        			 case JEUDI:
         				 jeudis[iInterne][cptJeudi] = x[iService][iInterne][t];
         			 	 cptJeudi++;
         			 	 break;
-        			 case 5:
+        			 case SAMEDI:
         				 samedis[iInterne][cptSamedi] = x[iService][iInterne][t];
         			 	 cptSamedi++;
         			 	 break;
-        			 case 6:
+        			 case DIMANCHE:
         				 dimanches[iInterne][cptDimanche] = x[iService][iInterne][t];
         			 	 cptDimanche++;
         			 	 break;
@@ -732,7 +869,7 @@ public class SolveurPlanning {
 		
    	 
    	 
-   	 	solveur.post(ICF.sum(joursIndisponibilitesSouples, sum));
+   	 	//solveur.post(ICF.sum(joursIndisponibilitesSouples, sum));
    		 
    	 
 		
@@ -750,7 +887,7 @@ public class SolveurPlanning {
         int[][] nbAstr = new int[nbAstreintes][nbInternes];
         for(int i=0; i< nbInternes ; i++){
             for(int t=0; t< nbJours ; t++){
-            	if(t%7 == 0)
+            	if(t% NB_JOURS_SEMAINE == LUNDI)
                 	System.out.print("   ");
                 System.out.print("[");
                 for(int j=0; j< nbServices ; j++){
@@ -775,7 +912,7 @@ public class SolveurPlanning {
          
          for(int i=0; i< nbInternes ; i++){
              for(int t=0; t< nbJours ; t++){
-             	if(t%7 == 0)
+             	if(t% NB_JOURS_SEMAINE == LUNDI)
                  	System.out.print("   ");
                  System.out.print("[");
                  for(int j=0; j< nbAstreintes ; j++){

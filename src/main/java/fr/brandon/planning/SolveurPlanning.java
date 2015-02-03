@@ -32,6 +32,7 @@ public class SolveurPlanning {
     private final int nbAstreintes;
     private final int nbAstreintesEcart;
     private int nbGardesTheorique;
+    private int nbAstreintesTheorique;
     
     //true si il respecte, false sinon
     private boolean[] VD;
@@ -84,6 +85,7 @@ public class SolveurPlanning {
         this.aptitude = aptitude;
         
         this.nbGardesTheorique = (nbJours*nbServices) / nbInternes ;
+        this.nbAstreintesTheorique = (nbJours*nbAstreintes) / nbInternes ; 
         
         System.out.println("Objet planning créé avec les paramètres suivants :");
         System.out.println("Nombre de Services : \t" + nbServices);
@@ -163,6 +165,13 @@ public class SolveurPlanning {
 	 */
 	public int getNbGardesTheorique() {
 		return nbGardesTheorique;
+	}
+	
+	/**
+	 * @return le nombre d'astreintes théorique de chaque interne sur la période considérée
+	 */
+	public int getNbAstreintesTheorique() {
+		return nbAstreintesTheorique;
 	}
 
 
@@ -531,27 +540,27 @@ public class SolveurPlanning {
     				 //pas nécessaire de mettre les contraintes sur les autres jours
     				 switch (t % NB_JOURS_SEMAINE)
     				 {
-    				   case 0: //lundi
+    				   case LUNDI: 
     					   solveur.post(ICF.arithm(y[iAstreinte][iInterne][t], "=", y[iAstreinte][iInterne][t+1]));
     				     break;
-    				   case 1: //mardi
+    				   case MARDI: //mardi
     					   //solveur.post(ICF.arithm(y[iAstreinte][iInterne][t], "=", y[iAstreinte][iInterne][t-1]));
       				     break;
-      				   case 2: //mercredi
+      				   case MERCREDI: //mercredi
       					   solveur.post(ICF.arithm(y[iAstreinte][iInterne][t], "=", y[iAstreinte][iInterne][t+1]));
       				     break;
-      				   case 3: //jeudi
+      				   case JEUDI: //jeudi
       					   //solveur.post(ICF.arithm(y[iAstreinte][iInterne][t], "=", y[iAstreinte][iInterne][t-1]));
     				     break;
-    				   case 4: //vendredi
+    				   case VENDREDI: //vendredi
     					   solveur.post(ICF.arithm(y[iAstreinte][iInterne][t], "=", y[iAstreinte][iInterne][t+1]));
     					   solveur.post(ICF.arithm(y[iAstreinte][iInterne][t], "=", y[iAstreinte][iInterne][t+2]));
     				     break;
-    				   case 5: //samedi
+    				   case SAMEDI: //samedi
     					   //solveur.post(ICF.arithm(y[iAstreinte][iInterne][t], "=", y[iAstreinte][iInterne][t-1]));
     					   //solveur.post(ICF.arithm(y[iAstreinte][iInterne][t], "=", y[iAstreinte][iInterne][t+1]));
       				     break;
-      				   case 6: //dimanche
+      				   case DIMANCHE: //dimanche
       					   //solveur.post(ICF.arithm(y[iAstreinte][iInterne][t], "=", y[iAstreinte][iInterne][t-1]));
       					   //solveur.post(ICF.arithm(y[iAstreinte][iInterne][t], "=", y[iAstreinte][iInterne][t-2]));
       				     break;
@@ -688,16 +697,16 @@ public class SolveurPlanning {
          System.out.println("nombre de gardes le jeudi/samedi/dimanche théorique: " + nbJourTheorique);
          
          // On va regrouper chaque jour dans un tableau qui lui est propre afin d'y appliquer les contraintes plus simplement
-         IntVar[][] jeudis    = new IntVar[nbInternes][nbJours/NB_JOURS_SEMAINE+1];
-         IntVar[][] samedis   = new IntVar[nbInternes][nbJours/NB_JOURS_SEMAINE+1];
-         IntVar[][] dimanches = new IntVar[nbInternes][nbJours/NB_JOURS_SEMAINE+1];
+         IntVar[][] jeudis    = new IntVar[nbInternes][(nbJours/NB_JOURS_SEMAINE)*nbServices];
+         IntVar[][] samedis   = new IntVar[nbInternes][(nbJours/NB_JOURS_SEMAINE)*nbServices];
+         IntVar[][] dimanches = new IntVar[nbInternes][(nbJours/NB_JOURS_SEMAINE)*nbServices];
          int cptJeudi = 0;
          int cptSamedi = 0;
          int cptDimanche = 0;
          for(int iInterne=0 ; iInterne < nbInternes ; iInterne++){
         	 for(int iService=0 ; iService < nbServices ; iService++){
         		 for(int t=0 ; t < nbJours ; t++){
-        			 switch (t){
+        			 switch (t % NB_JOURS_SEMAINE){
         			 case JEUDI:
         				 jeudis[iInterne][cptJeudi] = x[iService][iInterne][t];
         			 	 cptJeudi++;
@@ -867,7 +876,8 @@ public class SolveurPlanning {
 		
 		IntVar sum = VF.bounded("objectif", 0, 999, solveur);
 		
-   	 
+		
+		// A REMETTRE POUR ACTIVER LES INDISPONIBILITES SOUPLES
    	 
    	 	//solveur.post(ICF.sum(joursIndisponibilitesSouples, sum));
    		 

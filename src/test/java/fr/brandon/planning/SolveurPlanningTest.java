@@ -6,6 +6,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import solver.constraints.ICF;
+import solver.variables.IntVar;
+import solver.variables.VF;
 import static org.junit.Assert.*;
 
 /**
@@ -99,7 +102,9 @@ public class SolveurPlanningTest {
 
 		planningTest.initialisation();
 		planningTest.solve();
-		
+
+		planningTest.displayResult();
+
 	}
 
 	@AfterClass
@@ -108,7 +113,7 @@ public class SolveurPlanningTest {
 
 	@Before
 	public void setUp() {
-		
+
 	}
 
 	@After
@@ -204,114 +209,421 @@ public class SolveurPlanningTest {
 	 */
 	@Test
 	public void enchainementVDTest() {
-		planningTest.displayResult();
 		int cpt = 0;
 		for (int iService = 0; iService < planningTest.getNbServices(); iService++) {
 			for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
 				if (planningTest.getVD()[iInterne]) {
 					for (int t = 0; t < planningTest.getNbJours() - 1; t++) {
 						if (t % SolveurPlanning.NB_JOURS_SEMAINE == SolveurPlanning.VENDREDI)
-							if(planningTest.getX()[iService][iInterne][t].getValue() == 1){
-								for(int jService=0 ; jService<planningTest.getNbServices() ; jService++){
-									cpt += planningTest.getX()[jService][iInterne][t + 2].getValue();
+							if (planningTest.getX()[iService][iInterne][t]
+									.getValue() == 1) {
+								for (int jService = 0; jService < planningTest
+										.getNbServices(); jService++) {
+									cpt += planningTest.getX()[jService][iInterne][t + 2]
+											.getValue();
 								}
-							assertEquals("L'interne " + iInterne + "accepte la règle VD mais elle n'est pas respectée",
-											1 , cpt);
-							cpt=0;
+								assertEquals(
+										"L'interne "
+												+ iInterne
+												+ "accepte la règle VD mais elle n'est pas respectée",
+										1, cpt);
+								cpt = 0;
 							}
 					}
 				}
 			}
 		}
 	}
-	
-	/**
-	 * Test Indisponibilité forte
-	 */
-	@Test
-	public void indisponibiliteForteTest() {
-		for(int iInterne=0; iInterne< planningTest.getNbInternes() ; iInterne++){
-    		for(int t=0 ; t< planningTest.getNbJours() ; t++){
-    			if(planningTest.getIndispoForte()[iInterne][t]){
-    				for(int iService=0; iService< planningTest.getNbServices() ; iService++)
-    					assertEquals("l'indisponibilité forte de l'interne " + iInterne + "n'est pas respectée",
-    									0, planningTest.getX()[iService][iInterne][t]);
-    			}
-    		}
-    	} 
-	}
 
 	/**
 	 * Test Indisponibilité forte
 	 */
 	@Test
-	public void estCapable(){
-		  assertTrue(false);
-	  }
+	public void indisponibiliteForteTest() {
+		for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
+			for (int t = 0; t < planningTest.getNbJours(); t++) {
+				if (planningTest.getIndispoForte()[iInterne][t]) {
+					for (int iService = 0; iService < planningTest
+							.getNbServices(); iService++)
+						assertEquals("l'indisponibilité forte de l'interne "
+								+ iInterne + "n'est pas respectée", 0,
+								planningTest.getX()[iService][iInterne][t]
+										.getValue());
+				}
+			}
+		}
+	}
+
 	/**
-	 * Test Indisponibilité forte
+	 * Test Aptitude
 	 */
 	@Test
-	public void gardeEnsemble() {
-		assertTrue(false);
-	  }
+	public void estCapableTest() {
+		for (int iService = 0; iService < planningTest.getNbServices(); iService++)
+			for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
+				for (int t = 0; t < planningTest.getNbJours(); t++) {
+					if (!planningTest.getAptitude()[iService][iInterne][t]) {
+						assertEquals("l'interne " + iInterne
+								+ " travaille mais n'a pas l'aptitude", 0,
+								planningTest.getX()[iService][iInterne][t]
+										.getValue());
+					}
+				}
+			}
+	}
+
 	/**
-	 * Test Indisponibilité forte
+	 * Test gardeEnsemble
 	 */
 	@Test
-	public void groupementAstreintes() {
-		assertTrue(false);
-	  }
+	public void gardeEnsembleTest() {
+		for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
+			for (int jInterne = 0; jInterne < planningTest.getNbInternes(); jInterne++) {
+				if (!planningTest.getPeutTravailEnsemble()[iInterne][jInterne]
+						&& (iInterne != jInterne)) {
+					for (int t = 0; t < planningTest.getNbJours(); t++) {
+						for (int iService = 0; iService < planningTest
+								.getNbServices(); iService++) {
+							if (planningTest.getX()[iService][iInterne][t]
+									.getValue() == 1)
+								for (int jService = 0; jService < planningTest
+										.getNbServices(); jService++) {
+
+									assertEquals(
+											"Deux internes travaillent ensemble alors qu'ils ne peuvent pas",
+											0,
+											planningTest.getX()[jService][jInterne][t]
+													.getValue());
+								}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	/**
-	 * Test Indisponibilité forte
+	 * Test des groupements d'astreinte
 	 */
 	@Test
-	public void tjrsUneAstreinte() {
-		assertTrue(false);
-	 }
+	public void groupementAstreintesTest() {
+		for (int iAstreinte = 0; iAstreinte < planningTest.getNbAstreintes(); iAstreinte++) {
+			for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
+				for (int t = 0; t < planningTest.getNbJours() - 2; t++) {
+					if (planningTest.getY()[iAstreinte][iInterne][t].getValue() == 1) {
+
+						switch (t % SolveurPlanning.NB_JOURS_SEMAINE) {
+						case 0: // lundi
+							assertEquals(
+									"Les astreintes ne sont pas groupées comme souhaité",
+									1,
+									planningTest.getY()[iAstreinte][iInterne][t + 1]
+											.getValue());
+							break;
+						case 1: // mardi
+							assertEquals(
+									"Les astreintes ne sont pas groupées comme souhaité",
+									1,
+									planningTest.getY()[iAstreinte][iInterne][t - 1]
+											.getValue());
+							break;
+						case 2: // mercredi
+							assertEquals(
+									"Les astreintes ne sont pas groupées comme souhaité",
+									1,
+									planningTest.getY()[iAstreinte][iInterne][t + 1]
+											.getValue());
+							break;
+						case 3: // jeudi
+							assertEquals(
+									"Les astreintes ne sont pas groupées comme souhaité",
+									1,
+									planningTest.getY()[iAstreinte][iInterne][t - 1]
+											.getValue());
+							break;
+						case 4: // vendredi
+							assertEquals(
+									"Les astreintes ne sont pas groupées comme souhaité",
+									1,
+									planningTest.getY()[iAstreinte][iInterne][t + 1]
+											.getValue());
+							assertEquals(
+									"Les astreintes ne sont pas groupées comme souhaité",
+									1,
+									planningTest.getY()[iAstreinte][iInterne][t + 2]
+											.getValue());
+							break;
+						case 5: // samedi
+							assertEquals(
+									"Les astreintes ne sont pas groupées comme souhaité",
+									1,
+									planningTest.getY()[iAstreinte][iInterne][t + 1]
+											.getValue());
+							assertEquals(
+									"Les astreintes ne sont pas groupées comme souhaité",
+									1,
+									planningTest.getY()[iAstreinte][iInterne][t - 1]
+											.getValue());
+							break;
+						case 6: // dimanche
+							assertEquals(
+									"Les astreintes ne sont pas groupées comme souhaité",
+									1,
+									planningTest.getY()[iAstreinte][iInterne][t - 1]
+											.getValue());
+							assertEquals(
+									"Les astreintes ne sont pas groupées comme souhaité",
+									1,
+									planningTest.getY()[iAstreinte][iInterne][t - 2]
+											.getValue());
+							break;
+						default:
+							System.out.println("Erreur.");
+						}
+
+					}
+				}
+			}
+		}
+	}
+
 	/**
-	 * Test Indisponibilité forte
+	 * Test tjrsUneAstreinte
 	 */
 	@Test
-	public void incompatibleGardeAstreinte() {
-		assertTrue(false);
-	 }
+	public void tjrsUneAstreinteTest() {
+		int nbAstreinte = 0;
+		for (int t = 0; t < planningTest.getNbJours(); t++) {
+			for (int iAstreinte = 0; iAstreinte < planningTest
+					.getNbAstreintes(); iAstreinte++) {
+				for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
+					if (planningTest.getY()[iAstreinte][iInterne][t].getValue() == 1)
+						nbAstreinte++;
+				}
+				assertEquals("Le service " + iAstreinte
+						+ " n'a pas le nombre requis de gardes", 1, nbAstreinte);
+				nbAstreinte = 0;
+			}
+		}
+	}
+
 	/**
-	 * Test Indisponibilité forte
+	 * Test incompatibleGardeAstreinte
 	 */
 	@Test
-	public void equilibreSamu() {
-		assertTrue(false);
-	  }
+	public void incompatibleGardeAstreinteTest() {
+		for (int iService = 0; iService < planningTest.getNbServices(); iService++) {
+			for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
+				for (int t = 0; t < planningTest.getNbJours(); t++) {
+					if (planningTest.getX()[iService][iInterne][t].getValue() == 1)
+						for (int iAstreinte = 0; iAstreinte < planningTest
+								.getNbAstreintes(); iAstreinte++) {
+							assertEquals(
+									"L'interne cumule garde et astreinte",
+									0,
+									planningTest.getY()[iAstreinte][iInterne][t]
+											.getValue());
+
+						}
+
+				}
+			}
+		}
+	}
+
 	/**
-	 * Test Indisponibilité forte
+	 * Test equilibre Samu
 	 */
 	@Test
-	public void enchainementDesagreable() {
-		assertTrue(false);
-	 }
+	public void equilibreSamuTest() {
+		int nbGardes = 0;
+		int nbGardesTheorique = planningTest.getNbJours()
+				/ planningTest.getNbInternes();
+		int nbGardesEcart = planningTest.getNbGardeEcart();
+		for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
+			for (int t = 0; t < planningTest.getNbJours(); t++) {
+				for (int iService = 0; iService < planningTest.getNbServices(); iService++) {
+					if (planningTest.getNomServices()[iService] == "SAMU") {
+						if (planningTest.getX()[iService][iInterne][t]
+								.getValue() == 1)
+							nbGardes++;
+					}
+				}
+
+			}
+			assertTrue("L'interne " + iInterne
+					+ " s'éloigne trop de la moyenne de garde théorique",
+					nbGardes <= nbGardesTheorique + nbGardesEcart);
+			assertTrue("L'interne " + iInterne
+					+ " s'éloigne trop de la moyenne de garde théorique",
+					nbGardes >= nbGardesTheorique - nbGardesEcart);
+			nbGardes = 0;
+		}
+	}
+
 	/**
-	 * Test Indisponibilité forte
+	 * Test enchainement désagréables
 	 */
 	@Test
-	public void equilibreJSD() {
-		assertTrue(false);
-	  }
+	public void enchainementDesagreableTest() {
+
+		int garde[][] = new int[planningTest.getNbInternes()][planningTest.getNbJours()];
+
+		for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
+			for (int t = 0; t < planningTest.getNbJours(); t++) {
+				for (int iService = 0; iService < planningTest.getNbServices(); iService++) {
+
+					garde[iInterne][t] += planningTest.getX()[iService][iInterne][t].getValue();
+				}
+			}
+		}
+
+		for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
+			for (int t = 0; t < planningTest.getNbJours() - 4; t++) {
+
+				if ((garde[iInterne][t] == 1) && (garde[iInterne][t + 2] == 1))
+
+					assertEquals(
+							"L'interne "
+									+ iInterne
+									+ " subit un enchainement désagréable le jour "
+									+ t, 0, garde[iInterne][t + 4]);
+
+			}
+
+		}
+	}
+
 	/**
-	 * Test Indisponibilité forte
+	 * Test equilibre JSD
 	 */
 	@Test
-	public void equilibreAstreinte() {
-		assertTrue(false);
-	 }
+	public void equilibreJSDTest() {
+		int nbJourTheorique = (planningTest.getNbJours()
+				* planningTest.getNbServices() / SolveurPlanning.NB_JOURS_SEMAINE)
+				/ planningTest.getNbInternes();
+
+		// On va regrouper chaque jour dans un tableau qui lui est propre afin
+		// d'y appliquer les contraintes plus simplement
+		int[] jeudis = new int[planningTest.getNbInternes()];
+		int[] samedis = new int[planningTest.getNbInternes()];
+		int[] dimanches = new int[planningTest.getNbInternes()];
+		for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
+			for (int iService = 0; iService < planningTest.getNbServices(); iService++) {
+				for (int t = 0; t < planningTest.getNbJours(); t++) {
+					switch (t % SolveurPlanning.NB_JOURS_SEMAINE) {
+					case SolveurPlanning.JEUDI:
+						jeudis[iInterne] += planningTest.getX()[iService][iInterne][t]
+								.getValue();
+						break;
+					case SolveurPlanning.SAMEDI:
+						samedis[iInterne] += planningTest.getX()[iService][iInterne][t]
+								.getValue();
+						break;
+					case SolveurPlanning.DIMANCHE:
+						dimanches[iInterne] += planningTest.getX()[iService][iInterne][t]
+								.getValue();
+						break;
+					default:
+
+					}
+				}
+			}
+		}
+
+		// le nombre de garde effectué le jeudi/samedi/dimanche par chaque
+		// interne est comptabilisé, ce nombre ne doit pas trop s'écarter de la
+		// moyenne théorique
+		for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
+			assertTrue("probleme de jeudi", jeudis[iInterne] <= nbJourTheorique
+					+ planningTest.getNbGardeEcart());
+			assertTrue("probleme de jeudi", jeudis[iInterne] >= nbJourTheorique
+					- planningTest.getNbGardeEcart());
+			assertTrue(
+					"probleme de Samedi",
+					samedis[iInterne] <= nbJourTheorique
+							+ planningTest.getNbGardeEcart());
+			assertTrue(
+					"probleme de Samedi",
+					samedis[iInterne] >= nbJourTheorique
+							- planningTest.getNbGardeEcart());
+			assertTrue(
+					"probleme de Dimanche",
+					dimanches[iInterne] <= nbJourTheorique
+							+ planningTest.getNbGardeEcart());
+			assertTrue(
+					"probleme de Dimanche",
+					dimanches[iInterne] >= nbJourTheorique
+							- planningTest.getNbGardeEcart());
+
+		}
+	}
+
 	/**
-	 * Test Indisponibilité forte
+	 * Test Equilibre des astreintes
 	 */
 	@Test
-	public void indisponibiliteSouple() {
-		assertTrue(false);
-	  }
-	 
-	 
+	public void equilibreAstreinteTest() {
+		int nbAstreintes = 0;
+		int nbAstreintesTheorique = planningTest.getNbAstreintesTheorique();
+		int nbAstreinteEcart = planningTest.getNbAstreintesEcart();
+		for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
+			for (int t = 0; t < planningTest.getNbJours(); t++) {
+				for (int iAstreinte = 0; iAstreinte < planningTest
+						.getNbAstreintes(); iAstreinte++) {
+					if (planningTest.getY()[iAstreinte][iInterne][t].getValue() == 1)
+						nbAstreintes++;
+				}
+
+			}
+
+			assertTrue("L'interne " + iInterne
+					+ " s'éloigne trop de la moyenne d'astreinte théorique",
+					nbAstreintes <= nbAstreintesTheorique + nbAstreinteEcart);
+			assertTrue("L'interne " + iInterne
+					+ " s'éloigne trop de la moyenne d'astreinte théorique",
+					nbAstreintes >= nbAstreintesTheorique - nbAstreinteEcart);
+			nbAstreintes = 0;
+		}
+	}
+
+	/**
+	 * Test indisponibilité souples
+	 */
+	@Test
+	public void indisponibiliteSoupleTest() {
+		int[] nbIndispo = new int[planningTest.getNbInternes()];
+		int[] nbIndispoRespectees = new int[planningTest.getNbInternes()];
+		boolean respecte;
+
+		for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
+			for (int t = 0; t < planningTest.getNbJours(); t++) {
+				if (planningTest.getIndispoSouple()[iInterne][t]) {
+					nbIndispo[iInterne]++;
+					respecte = true;
+					for (int iService = 0; iService < planningTest
+							.getNbServices(); iService++) {
+						if (planningTest.getX()[iService][iInterne][t]
+								.getValue() == 1) {
+							respecte = false;
+						}
+					}
+					if (respecte)
+						nbIndispoRespectees[iInterne]++;
+				}
+			}
+		}
+
+		// On va considerer que la fonction respecter ses objectifs
+		// lorsqu'au moins 50% des indisponibilités souples son respectées
+
+		for (int iInterne = 0; iInterne < planningTest.getNbInternes(); iInterne++) {
+			assertTrue(
+					"l'interne "
+							+ iInterne
+							+ " n'a pas suffisament d'insiponibilités souples respectées",
+					nbIndispoRespectees[iInterne] >= nbIndispo[iInterne] / 2);
+		}
+	}
 
 }
